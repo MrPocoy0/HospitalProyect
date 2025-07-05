@@ -40,8 +40,8 @@ class DoctorVentana:
                                          bg="#f0f8ff", fg="#003366")
         frame_formulario.pack(padx=20, pady=10, fill="x")
 
-        # Validaciones: solo letras
-        self.validar_letras = self.ventana.register(lambda c: c.isalpha() or c.isspace())
+        # Validaciones: solo letras (ahora permite borrar el campo)
+        self.validar_letras = self.ventana.register(lambda c: c.isalpha() or c.isspace() or c == "")
 
         # Campo: Nombre
         self.nombre_entry = self._crear_campo(frame_formulario, "Nombre:", validar=self.validar_letras)

@@ -3,7 +3,10 @@
 
 import tkinter as tk
 from tkinter import messagebox
+from tkinter import ttk  # Importa ttk para Combobox
 from services import citas_service
+from services import pacientes_service
+from services import doctores_service
 import re
 
 class CitaVentana:
@@ -38,14 +41,11 @@ class CitaVentana:
                                          bg="#fffaf0", fg="#8b4513")
         frame_formulario.pack(padx=20, pady=10, fill="x")
 
-        # Validación solo para letras (nombres)
-        self.validar_letras = self.ventana.register(lambda c: c.isalpha() or c.isspace())
-
-        # Campos del formulario
-        self.paciente_entry = self._crear_campo(frame_formulario, "Nombre del Paciente:", validar=self.validar_letras)
-        self.doctor_entry = self._crear_campo(frame_formulario, "Nombre del Doctor:", validar=self.validar_letras)
-        self.fecha_entry = self._crear_campo(frame_formulario, "Fecha (YYYY-MM-DD):")  # Solo se valida en agregar/editar
-        self.hora_entry = self._crear_campo(frame_formulario, "Hora (HH:MM):")         # Solo se valida en agregar/editar
+        # Combobox para pacientes y doctores
+        self.paciente_combo = self._crear_combobox(frame_formulario, "Paciente:", self.obtener_nombres_pacientes)
+        self.doctor_combo = self._crear_combobox(frame_formulario, "Doctor:", self.obtener_nombres_doctores)
+        self.fecha_entry = self._crear_campo(frame_formulario, "Fecha (YYYY-MM-DD):")
+        self.hora_entry = self._crear_campo(frame_formulario, "Hora (HH:MM):")
 
         # Estilos de botones
         estilo_btn = {
@@ -69,7 +69,7 @@ class CitaVentana:
         tk.Button(btn_frame, text="Editar seleccionado", command=self.editar_cita, **estilo_btn).grid(row=0, column=1, padx=5)
         tk.Button(btn_frame, text="Eliminar seleccionado", command=self.eliminar_cita, **estilo_btn_rojo).grid(row=0, column=2, padx=5)
 
-        # Cargar citas actuales
+        # Cargar citas actuales y actualizar combos
         self.actualizar_lista()
 
     def _crear_campo(self, frame, texto, validar=None):
@@ -83,16 +83,36 @@ class CitaVentana:
         entry.pack(padx=10, pady=5)
         return entry
 
+    def _crear_combobox(self, frame, texto, obtener_opciones):
+        """Crea un Combobox con etiqueta"""
+        label = tk.Label(frame, text=texto, bg="#fffaf0", font=("Arial", 10, "bold"))
+        label.pack(anchor="w", padx=10, pady=(5, 0))
+        combo = ttk.Combobox(frame, width=47, state="readonly")
+        combo['values'] = obtener_opciones()
+        combo.pack(padx=10, pady=5)
+        return combo
+
+    def obtener_nombres_pacientes(self):
+        return [f"{p.nombre} {p.apellido}" for p in pacientes_service.obtener_pacientes()]
+
+    def obtener_nombres_doctores(self):
+        return [f"{d.nombre} ({d.especialidad})" for d in doctores_service.obtener_doctores()]
+
+    def actualizar_comboboxes(self):
+        self.paciente_combo['values'] = self.obtener_nombres_pacientes()
+        self.doctor_combo['values'] = self.obtener_nombres_doctores()
+
     def actualizar_lista(self):
-        """Muestra todas las citas programadas en la lista"""
+        """Muestra todas las citas programadas en la lista y actualiza los combos"""
         self.lista_citas.delete(0, tk.END)
         for cita in citas_service.obtener_citas():
             self.lista_citas.insert(tk.END, f"ID {cita.id}: {cita.fecha} {cita.hora} - {cita.paciente} con {cita.doctor}")
+        self.actualizar_comboboxes()
 
     def agregar_cita(self):
         """Agrega una nueva cita a la lista"""
-        paciente = self.paciente_entry.get().strip()
-        doctor = self.doctor_entry.get().strip()
+        paciente = self.paciente_combo.get().strip()
+        doctor = self.doctor_combo.get().strip()
         fecha = self.fecha_entry.get().strip()
         hora = self.hora_entry.get().strip()
 
@@ -122,8 +142,8 @@ class CitaVentana:
         indice = seleccion[0]
         cita = citas_service.obtener_citas()[indice]
 
-        nuevo_paciente = self.paciente_entry.get().strip()
-        nuevo_doctor = self.doctor_entry.get().strip()
+        nuevo_paciente = self.paciente_combo.get().strip()
+        nuevo_doctor = self.doctor_combo.get().strip()
         nueva_fecha = self.fecha_entry.get().strip()
         nueva_hora = self.hora_entry.get().strip()
 
@@ -165,10 +185,9 @@ class CitaVentana:
         if seleccion:
             indice = seleccion[0]
             cita = citas_service.obtener_citas()[indice]
-            self.paciente_entry.delete(0, tk.END)
-            self.paciente_entry.insert(0, cita.paciente)
-            self.doctor_entry.delete(0, tk.END)
-            self.doctor_entry.insert(0, cita.doctor)
+            # Selecciona el paciente y doctor en el combobox
+            self.paciente_combo.set(cita.paciente)
+            self.doctor_combo.set(cita.doctor)
             self.fecha_entry.delete(0, tk.END)
             self.fecha_entry.insert(0, cita.fecha)
             self.hora_entry.delete(0, tk.END)
@@ -176,7 +195,7 @@ class CitaVentana:
 
     def _limpiar_campos(self):
         """Limpia todos los campos de entrada del formulario"""
-        self.paciente_entry.delete(0, tk.END)
-        self.doctor_entry.delete(0, tk.END)
+        self.paciente_combo.set('')
+        self.doctor_combo.set('')
         self.fecha_entry.delete(0, tk.END)
         self.hora_entry.delete(0, tk.END)
