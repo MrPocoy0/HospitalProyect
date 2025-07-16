@@ -35,7 +35,6 @@ class PacienteVentana:
                                          bg="#f0f8ff", fg="#003366")
         frame_formulario.pack(padx=20, pady=10, fill="x")
 
-        # Validaciones para entradas
         self.validar_letras = self.ventana.register(lambda c: c.isalpha() or c.isspace())
         self.validar_numeros = self.ventana.register(str.isdigit)
 
@@ -102,6 +101,10 @@ class PacienteVentana:
 
         indice = seleccion[0]
         paciente = pacientes_service.obtener_pacientes()[indice]
+
+        confirmar = messagebox.askyesno("Confirmar edición", f"¿Deseas editar al paciente {paciente.nombre} {paciente.apellido}?")
+        if not confirmar:
+            return
 
         nuevo_nombre = self.nombre_entry.get().strip()
         nuevo_apellido = self.apellido_entry.get().strip()
